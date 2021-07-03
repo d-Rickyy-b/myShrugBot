@@ -13,3 +13,12 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+.idea
+
+# Exclude all config files, except for the config.template.json
+config*.json
+!config.template.json
+
+# Exclude binary without extension
+myShrugBot
