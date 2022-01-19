@@ -1,9 +1,8 @@
-package main
+package bot
 
 import (
-	"flag"
 	"fmt"
-	"github.com/d-Rickyy-b/myShrugBot/config"
+	"github.com/d-Rickyy-b/myShrugBot/internal/config"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
 	"strconv"
@@ -92,13 +91,12 @@ func shrugHandler(q *tb.Query) {
 	}
 }
 
-// setupBot makes all the initializations and configurations for running the Telegram bot
-//
-func setupBot(c config.Config) {
+// StartBot makes all the initializations and configurations for running the Telegram bot
+func StartBot(c config.Config) {
 	var poller tb.Poller
 
 	if c.Webhook.Enabled {
-		// Currently we don't support all the fields of Webhook.
+		// Currently, we don't support all the fields of Webhook.
 		// We could add stuff like TLS/Cert config later still
 		poller = &tb.Webhook{
 			Listen: c.Webhook.Listen,
@@ -136,12 +134,4 @@ func setupBot(c config.Config) {
 	}
 	log.Printf("Starting @%s", b.Me.Username)
 	b.Start()
-}
-
-func main() {
-	var configFile = flag.String("config", "config.json", "Path to config file")
-	flag.Parse()
-
-	c, _ := config.ReadConfig(*configFile)
-	setupBot(c)
 }
