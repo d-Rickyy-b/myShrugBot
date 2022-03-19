@@ -63,6 +63,8 @@ func shrugHandler(q *tb.Query) {
 		"🤷‍♂️",
 	}
 
+	log.Println("Received query")
+
 	if q.Text != "" {
 		shrugs = append(shrugs, q.Text+" ¯\\_(ツ)_/¯")
 		shrugs = append(shrugs, q.Text+" 🤷‍♂️")
