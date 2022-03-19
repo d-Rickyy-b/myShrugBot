@@ -14,9 +14,15 @@ type Webhook struct {
 	Listen  string `json:"listen"`
 }
 
+type Prometheus struct {
+	Enabled bool   `json:"enabled"`
+	Listen  string `json:"listen"`
+}
+
 type Config struct {
-	Token   string  `json:"token"`
-	Webhook Webhook `json:"webhook"`
+	Token      string     `json:"token"`
+	Webhook    Webhook    `json:"webhook"`
+	Prometheus Prometheus `json:"prometheus"`
 }
 
 func ReadConfig(configFile string) (Config, error) {

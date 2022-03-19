@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"github.com/d-Rickyy-b/myShrugBot/internal/config"
+	"github.com/d-Rickyy-b/myShrugBot/internal/prometheus"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
 	"strconv"
@@ -80,6 +81,7 @@ func shrugHandler(q *tb.Query) {
 		// needed to set a unique string ID for each result
 		results[i].SetResultID(strconv.Itoa(i))
 	}
+	prometheus.ShrugUsage.Inc()
 
 	err := bot.Answer(q, &tb.QueryResponse{
 		Results:   results,
