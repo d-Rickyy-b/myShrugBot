@@ -1,4 +1,4 @@
-module github.com/d-Rickyy-b/myShrugBot
+module myShrugBot
 
 go 1.16
 

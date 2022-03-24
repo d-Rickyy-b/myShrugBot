@@ -2,13 +2,14 @@ package bot
 
 import (
 	"fmt"
-	"github.com/d-Rickyy-b/myShrugBot/internal/config"
-	"github.com/d-Rickyy-b/myShrugBot/internal/prometheus"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
+	"myShrugBot/internal/config"
+	"myShrugBot/internal/prometheus"
 	"strconv"
 	"time"
 	"unicode/utf8"
+
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 // define bot in global context to be accessible by all handlers

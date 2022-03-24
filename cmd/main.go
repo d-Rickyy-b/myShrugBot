@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/d-Rickyy-b/myShrugBot/internal/bot"
-	"github.com/d-Rickyy-b/myShrugBot/internal/config"
-	"github.com/d-Rickyy-b/myShrugBot/internal/prometheus"
+	"myShrugBot/internal/bot"
+	"myShrugBot/internal/config"
+	"myShrugBot/internal/prometheus"
 )
 
 func main() {
