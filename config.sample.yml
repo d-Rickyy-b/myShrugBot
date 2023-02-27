@@ -8,8 +8,3 @@ webhook:
   url: "example.com/test"
   cert_path: ""
   cert_key_path: ""
-
-prometheus:
-  enabled: false
-  listen: 127.0.0.1:9101
-  export_port: 9090
