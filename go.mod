@@ -2,6 +2,7 @@ module github.com/d-Rickyy-b/myShrugBot
 
 go 1.19
 
-require gopkg.in/tucnak/telebot.v2 v2.5.0
-
-require github.com/pkg/errors v0.8.1 // indirect
+require (
+	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.15
+	gopkg.in/yaml.v3 v3.0.1
+)

@@ -1,8 +1,0 @@
-{
-  "token": "<your_bot_token>",
-  "webhook": {
-    "enabled": false,
-    "url": "example.com/test",
-    "listen": "127.0.0.1:8123"
-  }
-}

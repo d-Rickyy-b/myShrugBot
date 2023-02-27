@@ -3,16 +3,17 @@ package bot
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"strconv"
-	"time"
 	"unicode/utf8"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/inlinequery"
 	"github.com/d-Rickyy-b/myShrugBot/internal/config"
-	tb "gopkg.in/tucnak/telebot.v2"
 )
-
-// define bot in global context to be accessible by all handlers
-var bot *tb.Bot
 
 // ellipsis takes a text and an integer to generate a new string that's <= 'max' characters (not bytes) long.
 // Excess characters will be removed from the middle and replaced with "..."
@@ -57,84 +58,100 @@ func ellipsis(text string, max int) string {
 // 2) The (male) shrug emoji
 // 3) The text the user entered + classic shrug
 // 4) The text the user entered + shrug emoji
-func shrugHandler(q *tb.Query) {
+func shrugHandler(b *gotgbot.Bot, ctx *ext.Context) error {
+	query := ctx.InlineQuery.Query
+
 	shrugs := []string{
 		"¯\\_(ツ)_/¯",
 		"🤷‍♂️",
 	}
 
-	log.Println("Received query")
+	log.Printf("Received query: %s\n", query)
 
-	if q.Text != "" {
-		shrugs = append(shrugs, q.Text+" ¯\\_(ツ)_/¯")
-		shrugs = append(shrugs, q.Text+" 🤷‍♂️")
+	if query != "" {
+		shrugs = append(shrugs, query+" ¯\\_(ツ)_/¯")
+		shrugs = append(shrugs, query+" 🤷‍♂️")
 	}
 
-	results := make(tb.Results, len(shrugs)) // []tb.Result
+	results := make([]gotgbot.InlineQueryResult, len(shrugs))
 	for i, shrug := range shrugs {
-		result := &tb.ArticleResult{
-			ResultBase: tb.ResultBase{},
-			Title:      ellipsis(shrug, 45),
-			Text:       shrug,
-			HideURL:    true,
+		result := gotgbot.InlineQueryResultArticle{
+			Id:    strconv.Itoa(i), // needed to set a unique string ID for each result
+			Title: ellipsis(shrug, 45),
+			InputMessageContent: gotgbot.InputTextMessageContent{
+				MessageText: shrug,
+			},
+			HideUrl: true,
 		}
 
 		results[i] = result
-		// needed to set a unique string ID for each result
-		results[i].SetResultID(strconv.Itoa(i))
 	}
 
-	err := bot.Answer(q, &tb.QueryResponse{
-		Results:   results,
-		CacheTime: 60, // a minute
-	})
-
+	_, err := b.AnswerInlineQuery(ctx.InlineQuery.Id, results, nil)
 	if err != nil {
 		log.Println(err)
+		return err
 	}
+
+	return nil
 }
 
 // StartBot makes all the initializations and configurations for running the Telegram bot
-func StartBot(c config.Config) {
-	var poller tb.Poller
+func StartBot(botConfig config.Config) {
+	bot, createBotErr := gotgbot.NewBot(botConfig.BotToken, &gotgbot.BotOpts{
+		Client: http.Client{},
+	})
+	if createBotErr != nil {
+		log.Println(botConfig)
+		log.Fatalln("Something went wrong:", createBotErr)
+	}
 
-	if c.Webhook.Enabled {
-		// Currently, we don't support all the fields of Webhook.
-		// We could add stuff like TLS/Cert config later still
-		poller = &tb.Webhook{
-			Listen: c.Webhook.Listen,
-			Endpoint: &tb.WebhookEndpoint{
-				PublicURL: c.Webhook.Url,
-			},
+	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
+		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
+			log.Println("an error occurred while handling update:", err.Error())
+			return ext.DispatcherActionNoop
+		},
+	})
+
+	updater := ext.NewUpdater(&ext.UpdaterOpts{
+		ErrorLog:   nil,
+		Dispatcher: dispatcher,
+	})
+
+	if botConfig.Webhook.Enabled {
+		parsedURL, parseErr := url.Parse(botConfig.Webhook.URL)
+		if parseErr != nil {
+			log.Fatalln("Can't parse webhook url:", parseErr)
 		}
-		log.Println("Using webhook from config!")
+		log.Printf("Starting webhook on '%s:%d%s'...\n", botConfig.Webhook.ListenIP, botConfig.Webhook.ListenPort, botConfig.Webhook.ListenPath)
+		// TODO add support for custom certificates
+		startErr := updater.StartWebhook(bot, parsedURL.Path, ext.WebhookOpts{
+			ListenAddr: fmt.Sprintf("%s:%d", botConfig.Webhook.ListenIP, botConfig.Webhook.ListenPort),
+		})
+		if startErr != nil {
+			panic("failed to start webhook: " + startErr.Error())
+		}
+		_, setWebhookErr := bot.SetWebhook(botConfig.Webhook.URL, &gotgbot.SetWebhookOpts{})
+		if setWebhookErr != nil {
+			panic("failed to set webhook: " + setWebhookErr.Error())
+		}
 	} else {
-		poller = &tb.LongPoller{Timeout: 10 * time.Second}
-		log.Println("Using long polling as fallback!")
+		log.Println("Start polling...")
+		_, _ = bot.DeleteWebhook(nil)
+		err := updater.StartPolling(bot, &ext.PollingOpts{DropPendingUpdates: false})
+		if err != nil {
+			panic("failed to start polling: " + err.Error())
+		}
 	}
 
-	b, err := tb.NewBot(tb.Settings{
-		Token:  c.Token,
-		Poller: poller,
-	})
+	dispatcher.AddHandler(handlers.NewCommand("start", func(b *gotgbot.Bot, ctx *ext.Context) error {
+		welcomeText := fmt.Sprintf("Hi! Thanks for using this bot. You can just type '@%s' in any chat and I'll provide you with some shruggies ¯\\_(ツ)_/¯", b.Username)
+		b.SendMessage(ctx.EffectiveUser.Id, welcomeText, nil)
+		return nil
+	}))
 
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	bot = b
+	dispatcher.AddHandler(handlers.NewInlineQuery(inlinequery.All, shrugHandler))
 
-	b.Handle("/start", func(m *tb.Message) {
-		welcomeText := fmt.Sprintf("Hi! Thanks for using this bot. You can just type '@%s' in any chat and I'll provide you with some shruggies ¯\\_(ツ)_/¯", b.Me.Username)
-		b.Send(m.Sender, welcomeText)
-	})
-
-	b.Handle(tb.OnQuery, shrugHandler)
-
-	// We must remove the webhook if we want to use Polling. Otherwise we'll run into an error and can't poll new updates.
-	if !c.Webhook.Enabled {
-		b.RemoveWebhook()
-	}
-	log.Printf("Starting @%s", b.Me.Username)
-	b.Start()
+	log.Printf("Bot has been started as @%s...\n", bot.User.Username)
+	updater.Idle()
 }

@@ -16,9 +16,9 @@
 
 .idea
 
-# Exclude all config files, except for the config.template.json
-config*.json
-!config.template.json
+# Exclude all config files, except for the sample config
+config*.yml
+!config.sample.yml
 
 # Exclude binary without extension
 myShrugBot
